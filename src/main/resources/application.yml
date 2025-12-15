@@ -1,0 +1,36 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/autorent
+    username: postgres
+    password: votre_mot_de_passe
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: votre_email@gmail.com
+    password: votre_mot_de_passe_app
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+jwt:
+  secret: votre_secret_jwt_très_long_et_sécurisé_au_moins_64_caractères
+  expiration: 86400000  # 24h en millisecondes
+
+app:
+  frontend-url: http://localhost:3000  # URL de votre frontend
