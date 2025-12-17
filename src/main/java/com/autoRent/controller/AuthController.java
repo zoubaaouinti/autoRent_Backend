@@ -34,12 +34,27 @@ public class AuthController {
         return ResponseEntity.ok(authService.login(request));
     }
     
+    @GetMapping("/profile")
+    public ResponseEntity<UserDto> getProfile() {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getPrincipal())) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated");
+        }
+        String email = auth.getName();
+        UserDto profile = authService.getProfile(email);
+        return ResponseEntity.ok(profile);
+    }
+
     @PostMapping("/verify-email")
-    public ResponseEntity<?> verifyEmail(
-            @RequestParam String email,
-            @RequestParam String otp) {
+    public ResponseEntity<?> verifyEmail(@RequestParam String email, @RequestParam String otp) {
         authService.verifyEmail(email, otp);
         return ResponseEntity.ok("Email verified successfully");
+    }
+
+    @GetMapping("/user/{email}")
+    public ResponseEntity<UserDto> getUserByEmail(@PathVariable String email) {
+        UserDto userDto = authService.getUserByEmail(email);
+        return ResponseEntity.ok(userDto);
     }
     
     @PostMapping("/forgot-password")

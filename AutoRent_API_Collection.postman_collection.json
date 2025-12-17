@@ -219,6 +219,28 @@
           },
           "response": []
         }
+          ,
+          {
+            "name": "Get Profile",
+            "request": {
+              "method": "GET",
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{token}}",
+                  "type": "text"
+                }
+              ],
+              "url": {
+                "raw": "{{base_url}}/api/v1/auth/profile",
+                "protocol": "http",
+                "host": ["localhost"],
+                "port": "8080",
+                "path": ["api", "v1", "auth", "profile"]
+              }
+            },
+            "response": []
+          }
         ,
         {
           "name": "Change Password",

@@ -199,6 +199,18 @@ public class AuthService {
         return UserDto.fromUser(user);
     }
 
+    public UserDto getProfile(String email) {
+        User user = userRepository.findByEmail(email)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        return UserDto.fromUser(user);
+    }
+
+    public UserDto getUserByEmail(String email) {
+        User user = userRepository.findByEmail(email)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        return UserDto.fromUser(user);
+    }
+
     @Transactional
     public UserDto updateProfilePicture(String email, MultipartFile file) {
         User user = userRepository.findByEmail(email)
