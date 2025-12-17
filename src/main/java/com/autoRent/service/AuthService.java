@@ -4,6 +4,8 @@ package com.autoRent.service;
 import com.autoRent.dto.AuthResponse;
 import com.autoRent.dto.LoginRequest;
 import com.autoRent.dto.RegisterRequest;
+import com.autoRent.dto.ChangePasswordRequest;
+import com.autoRent.dto.UpdateProfileRequest;
 import com.autoRent.dto.UserDto;
 import com.autoRent.model.User;
 import com.autoRent.repository.UserRepository;
@@ -17,6 +19,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 import java.time.LocalDateTime;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
@@ -121,7 +124,7 @@ public class AuthService {
     @Transactional
     public void requestPasswordReset(String email) {
         User user = userRepository.findByEmail(email)
-            .orElseThrow(() -> new RuntimeException("User not found"));
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
             
         String otp = generateOtp();
         user.setOtp(otp);
@@ -134,11 +137,11 @@ public class AuthService {
     @Transactional
     public void resetPassword(String email, String otp, String newPassword) {
         User user = userRepository.findByEmail(email)
-            .orElseThrow(() -> new RuntimeException("User not found"));
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
             
         if (!otp.equals(user.getOtp()) || 
             user.getOtpExpiration().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("Invalid or expired OTP");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid or expired OTP");
         }
         
         user.setPassword(passwordEncoder.encode(newPassword));
@@ -149,5 +152,90 @@ public class AuthService {
     
     private String generateOtp() {
         return String.format("%04d", (int) (Math.random() * 10000));
+    }
+
+    @Transactional
+    public void changePassword(String email, String oldPassword, String newPassword) {
+        User user = userRepository.findByEmail(email)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Old password is incorrect");
+        }
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+    }
+
+    @Transactional
+    public UserDto updateProfile(String email, UpdateProfileRequest req) {
+        User user = userRepository.findByEmail(email)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        if (req.getEmail() != null && !req.getEmail().equals(user.getEmail())) {
+            if (userRepository.existsByEmail(req.getEmail())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email already in use");
+            }
+            user.setEmail(req.getEmail());
+            user.setEmailVerified(false);
+            String otp = generateOtp();
+            user.setOtp(otp);
+            user.setOtpExpiration(LocalDateTime.now().plusMinutes(15));
+            try {
+                emailService.sendVerificationEmail(user.getEmail(), otp);
+            } catch (Exception ex) {
+                log.warn("Failed to send verification email to {}: {}", user.getEmail(), ex.getMessage());
+            }
+        }
+
+        if (req.getDisplayName() != null) user.setDisplayName(req.getDisplayName());
+        if (req.getPhotoURL() != null) user.setPhotoURL(req.getPhotoURL());
+        if (req.getPhoneNumber() != null) user.setPhoneNumber(req.getPhoneNumber());
+        if (req.getAddress() != null) user.setAddress(req.getAddress());
+        if (req.getBio() != null) user.setBio(req.getBio());
+        if (req.getDateOfBirth() != null) user.setDateOfBirth(req.getDateOfBirth());
+
+        user = userRepository.save(user);
+        return UserDto.fromUser(user);
+    }
+
+    @Transactional
+    public UserDto updateProfilePicture(String email, MultipartFile file) {
+        User user = userRepository.findByEmail(email)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        if (file == null || file.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No file uploaded");
+        }
+
+        String original = file.getOriginalFilename();
+        String ext = "";
+        if (original != null && original.contains(".")) {
+            ext = original.substring(original.lastIndexOf('.')).toLowerCase();
+        }
+
+        // Validate file extension (allow common image formats)
+        if (!ext.matches("\\.(jpg|jpeg|png|gif|webp|bmp)")) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only image files (jpg, png, gif, webp, bmp) are allowed");
+        }
+
+        try {
+            java.nio.file.Path uploadDir = java.nio.file.Paths.get("uploads");
+            if (!java.nio.file.Files.exists(uploadDir)) {
+                java.nio.file.Files.createDirectories(uploadDir);
+            }
+
+            String filename = user.getUid() + "-" + System.currentTimeMillis() + ext;
+            java.nio.file.Path target = uploadDir.resolve(filename);
+            file.transferTo(target.toFile());
+
+            // Set photoURL to served path
+            String servedPath = "/uploads/" + filename;
+            user.setPhotoURL(servedPath);
+            user = userRepository.save(user);
+            return UserDto.fromUser(user);
+        } catch (Exception ex) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to save file: " + ex.getMessage());
+        }
     }
 }

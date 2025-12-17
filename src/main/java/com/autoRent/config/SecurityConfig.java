@@ -29,7 +29,18 @@ public class SecurityConfig {
        http
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
-            .requestMatchers("/api/v1/auth/**").permitAll()
+            .requestMatchers("/error").permitAll()
+            .requestMatchers(
+                "/api/v1/auth/register",
+                "/api/v1/auth/login",
+                "/api/v1/auth/verify-email",
+                "/api/v1/auth/forgot-password",
+                "/api/v1/auth/reset-password"
+            ).permitAll()
+            .requestMatchers(
+                "/api/v1/auth/change-password",
+                "/api/v1/auth/profile"
+            ).authenticated()
             .requestMatchers("/api/v1/client/**").hasAnyRole("CLIENT", "CLIENT_AUTH")
             .requestMatchers("/api/v1/driver/**").hasRole("DRIVER")
             .requestMatchers("/api/v1/fleet/**").hasRole("FLEET_MANAGER")
