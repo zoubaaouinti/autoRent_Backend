@@ -4,8 +4,8 @@ server:
 spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/autorent
-    username: postgres
-    password: votre_mot_de_passe
+    username: autorent_user
+    password: 12345678
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -19,8 +19,8 @@ spring:
   mail:
     host: smtp.gmail.com
     port: 587
-    username: votre_email@gmail.com
-    password: votre_mot_de_passe_app
+    username: zouba.aouinti@gmail.com
+    password: hbdu ybsb xjqf lkta
     properties:
       mail:
         smtp:
@@ -29,8 +29,13 @@ spring:
             enable: true
 
 jwt:
-  secret: votre_secret_jwt_très_long_et_sécurisé_au_moins_64_caractères
+  secret: 4d37f0c5d9e8b2a1f6c3e0d7a9b5c8f1e2d4a6b7c8d9e0f1a2b3c4d5e6f7g8h9i0j
   expiration: 86400000  # 24h en millisecondes
+  refresh-expiration: 604800000 # 7 days in milliseconds
 
 app:
   frontend-url: http://localhost:3000  # URL de votre frontend
+
+logging:
+  level:
+    org.springframework.security: DEBUG
